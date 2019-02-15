@@ -190,9 +190,12 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
             }
             else
             {
-                _logger.LogInformation($"Extracting files to '{scriptPath}'");
-                ZipFile.ExtractToDirectory(filePath, scriptPath, overwriteFiles: true);
-                _logger.LogInformation($"Zip extraction complete");
+                using (_metricsLogger.LatencyEvent(MetricEventNames.LinuxContainerSpecializationZipExtract))
+                {
+                    _logger.LogInformation($"Extracting files to '{scriptPath}'");
+                    ZipFile.ExtractToDirectory(filePath, scriptPath, overwriteFiles: true);
+                    _logger.LogInformation($"Zip extraction complete");
+                }
             }
 
             string bundlePath = Path.Combine(scriptPath, "worker-bundle");
@@ -229,7 +232,6 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
             Utility.TryCleanUrl(zipUri.AbsoluteUri, out cleanedUrl);
             var filePath = Path.Combine(Path.GetTempPath(), Path.GetFileName(zipUri.AbsolutePath));
             var zipPath = $"{zipUri.Authority}{zipUri.AbsolutePath}";
-            _logger.LogInformation($"Downloading zip contents from '{zipPath}' to temp file '{filePath}'");
 
             _logger.LogInformation($"Downloading zip contents from '{cleanedUrl}' to temp file '{filePath}'");
 
