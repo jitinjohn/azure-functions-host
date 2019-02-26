@@ -9,22 +9,17 @@ RUN cd workingdir && \
     dotnet publish src/WebJobs.Script.WebHost/WebJobs.Script.WebHost.csproj --output /azure-functions-host
 
 # Runtime image
-FROM microsoft/dotnet:2.2-aspnetcore-runtime
+# FROM microsoft/dotnet:2.2-aspnetcore-runtime
+FROM mcr.microsoft.com/azure-functions/mesh:2.0.12410
 
-RUN apt-get update && \
-    apt-get install -y gnupg && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    apt-get update && \
-    apt-get install -y nodejs
+RUN mv /azure-functions-host/workers /workers
 
 COPY --from=installer-env ["/azure-functions-host", "/azure-functions-host"]
-COPY --from=installer-env ["/workingdir/sample", "/home/site/wwwroot"]
 
-ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
-    HOME=/home \
-    ASPNETCORE_URLS=http://+:80 \
-    AZURE_FUNCTIONS_ENVIRONMENT=Development
+COPY ./run.sh /run.sh
 
-EXPOSE 80
+RUN rm -rf /azure-functions-host/workers && \
+    mv /workers /azure-functions-host/ && \
+    chmod +x /run.sh
 
-CMD dotnet /azure-functions-host/Microsoft.Azure.WebJobs.Script.WebHost.dll
+CMD /run.sh
