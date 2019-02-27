@@ -176,7 +176,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 if (filePath.EndsWith(".squashfs", StringComparison.OrdinalIgnoreCase) ||
                     filePath.EndsWith(".img", StringComparison.OrdinalIgnoreCase))
                 {
-                    BashRun($"squashfs_ll {filePath} {scriptPath}");
+                    BashRun($"/squashfuse/squashfuse_ll {filePath} {scriptPath}");
                 }
                 else if (filePath.EndsWith(".zip"))
                 {
