@@ -25,7 +25,6 @@ RUN apt-get update && \
     mv /azure-functions-host/workers/python /python
 
 COPY --from=installer-env ["/azure-functions-host", "/azure-functions-host"]
-COPY ./content.zip /tmp/content.zip
 COPY ./run.sh /run.sh
 
 RUN rm -rf /azure-functions-host/workers && \
