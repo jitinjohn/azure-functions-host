@@ -21,9 +21,14 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         private readonly IRpcServer _rpcServer;
         private readonly ILogger _logger;
 
-        private List<string> _languages = new List<string>()
+        private List<string> _windowsLanguages = new List<string>()
         {
             LanguageWorkerConstants.JavaLanguageWorkerName
+        };
+
+        private List<string> _linuxLanguages = new List<string>()
+        {
+            LanguageWorkerConstants.PythonLanguageWorkerName
         };
 
         public RpcInitializationService(IOptionsMonitor<ScriptApplicationHostOptions> applicationHostOptions, IEnvironment environment, IRpcServer rpcServer, ILanguageWorkerChannelManager languageWorkerChannelManager, ILoggerFactory loggerFactory)
@@ -73,16 +78,16 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             {
                 return Task.CompletedTask;
             }
-            if (_environment.IsLinuxContainerEnvironment())
-            {
-                return Task.CompletedTask;
-            }
             if (string.IsNullOrEmpty(workerRuntime) && _environment.IsPlaceholderModeEnabled())
             {
-                // Only warm up language workers in placeholder mode in worker runtime is not set
-                return Task.WhenAll(_languages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
+                // Only warm up language workers in placeholder mode if worker runtime is not set
+                if (_environment.IsLinuxContainerEnvironment())
+                {
+                    return Task.WhenAll(_linuxLanguages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
+                }
+                return Task.WhenAll(_windowsLanguages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
             }
-            if (_languages.Contains(workerRuntime))
+            if (_windowsLanguages.Contains(workerRuntime))
             {
                 return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
             }
@@ -90,6 +95,6 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         }
 
         // To help with unit tests
-        internal void AddSupportedRuntime(string language) => _languages.Add(language);
+        internal void AddSupportedWindowsRuntime(string language) => _windowsLanguages.Add(language);
     }
 }
