@@ -51,7 +51,7 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
         }
 
         [Fact]
-        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_Linux_PlaceHolderMode()
+        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_LinuxConsumption_PlaceHolderMode()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
@@ -62,12 +62,31 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
             _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
             await _rpcInitializationService.StartAsync(CancellationToken.None);
             _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.PythonLanguageWorkerName), Times.Once);
+            _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.JavaLanguageWorkerName), Times.Never);
             Assert.Contains("testserver", testRpcServer.Uri.ToString());
             await testRpcServer.ShutdownAsync();
         }
 
         [Fact]
-        public async Task RpcInitializationService_LinuxConsumption_Initializes_RpcServer()
+        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_LinuxAppService_PlaceHolderMode()
+        {
+            IRpcServer testRpcServer = new TestRpcServer();
+            var mockEnvironment = new Mock<IEnvironment>();
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.FunctionsLogsMountPath)).Returns(@"d:\test");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.AzureWebsiteInstanceId)).Returns("1234");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.AzureWebsitePlaceholderMode)).Returns("1");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName)).Returns(string.Empty);
+
+            _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
+            await _rpcInitializationService.StartAsync(CancellationToken.None);
+            _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.PythonLanguageWorkerName), Times.Once);
+            _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.JavaLanguageWorkerName), Times.Never);
+            Assert.Contains("testserver", testRpcServer.Uri.ToString());
+            await testRpcServer.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task RpcInitializationService_LinuxConsumption_Initializes_RpcServer_WithoutWindowsLanguage()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
@@ -82,12 +101,13 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
         }
 
         [Fact]
-        public async Task RpcInitializationService_LinuxAppService_Initializes_RpcServer()
+        public async Task RpcInitializationService_LinuxAppService_Initializes_RpcServer_WithoutWindowsLanguage()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
             mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.FunctionsLogsMountPath)).Returns(@"d:\test");
             mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.AzureWebsiteInstanceId)).Returns("1234");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName)).Returns("java");
 
             _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
             await _rpcInitializationService.StartAsync(CancellationToken.None);
@@ -128,6 +148,37 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
             _rpcInitializationService.AddSupportedWindowsRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
             await _rpcInitializationService.StartAsync(CancellationToken.None);
             _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.NodeLanguageWorkerName), Times.Once);
+            Assert.Contains("testserver", testRpcServer.Uri.ToString());
+            await testRpcServer.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task RpcInitializationService_LinuxAppService_Initializes_RpcServer_WorkerRuntime_Set()
+        {
+            IRpcServer testRpcServer = new TestRpcServer();
+            var mockEnvironment = new Mock<IEnvironment>();
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.FunctionsLogsMountPath)).Returns(@"d:\test");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.AzureWebsiteInstanceId)).Returns("1234");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName)).Returns("python");
+
+            _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
+            await _rpcInitializationService.StartAsync(CancellationToken.None);
+            _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.PythonLanguageWorkerName), Times.Once);
+            Assert.Contains("testserver", testRpcServer.Uri.ToString());
+            await testRpcServer.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task RpcInitializationService_LinuxConsumption_Initializes_RpcServer_WorkerRuntime_Set()
+        {
+            IRpcServer testRpcServer = new TestRpcServer();
+            var mockEnvironment = new Mock<IEnvironment>();
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.ContainerName)).Returns("testContainer");
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName)).Returns("python");
+
+            _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
+            await _rpcInitializationService.StartAsync(CancellationToken.None);
+            _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.PythonLanguageWorkerName), Times.Once);
             Assert.Contains("testserver", testRpcServer.Uri.ToString());
             await testRpcServer.ShutdownAsync();
         }

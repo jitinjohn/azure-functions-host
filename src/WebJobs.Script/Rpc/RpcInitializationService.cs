@@ -74,22 +74,30 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         internal Task InitializeChannelsAsync()
         {
             string workerRuntime = _environment.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName);
-            if (_environment.IsLinuxAppServiceEnvironment())
-            {
-                return Task.CompletedTask;
-            }
+
             if (string.IsNullOrEmpty(workerRuntime) && _environment.IsPlaceholderModeEnabled())
             {
                 // Only warm up language workers in placeholder mode if worker runtime is not set
-                if (_environment.IsLinuxContainerEnvironment())
+                if (_environment.IsLinuxContainerEnvironment() || _environment.IsLinuxAppServiceEnvironment())
                 {
                     return Task.WhenAll(_linuxLanguages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
                 }
                 return Task.WhenAll(_windowsLanguages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
             }
-            if (_windowsLanguages.Contains(workerRuntime))
+
+            if (_environment.IsLinuxContainerEnvironment() || _environment.IsLinuxAppServiceEnvironment())
             {
-                return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
+                if (_linuxLanguages.Contains(workerRuntime))
+                {
+                    return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
+                }
+            }
+            else
+            {
+                if (_windowsLanguages.Contains(workerRuntime))
+                {
+                    return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
+                }
             }
             return Task.CompletedTask;
         }
