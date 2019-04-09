@@ -21,14 +21,16 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         private readonly IRpcServer _rpcServer;
         private readonly ILogger _logger;
 
-        private List<string> _windowsLanguages = new List<string>()
+        private Dictionary<string, List<string>> _osToLanguagesMapping = new Dictionary<string, List<string>>()
         {
-            LanguageWorkerConstants.JavaLanguageWorkerName
-        };
-
-        private List<string> _linuxLanguages = new List<string>()
-        {
-            LanguageWorkerConstants.PythonLanguageWorkerName
+            {
+                LanguageWorkerConstants.WindowsOperatingSystemName,
+                new List<string>() { LanguageWorkerConstants.JavaLanguageWorkerName }
+            },
+            {
+                LanguageWorkerConstants.LinuxOperatingSystemName,
+                new List<string>() { LanguageWorkerConstants.PythonLanguageWorkerName }
+            }
         };
 
         public RpcInitializationService(IOptionsMonitor<ScriptApplicationHostOptions> applicationHostOptions, IEnvironment environment, IRpcServer rpcServer, ILanguageWorkerChannelManager languageWorkerChannelManager, ILoggerFactory loggerFactory)
@@ -75,34 +77,44 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         {
             string workerRuntime = _environment.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName);
 
-            if (string.IsNullOrEmpty(workerRuntime) && _environment.IsPlaceholderModeEnabled())
+            if (IsLinuxEnvironment())
             {
-                // Only warm up language workers in placeholder mode if worker runtime is not set
-                if (_environment.IsLinuxContainerEnvironment() || _environment.IsLinuxAppServiceEnvironment())
-                {
-                    return Task.WhenAll(_linuxLanguages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
-                }
-                return Task.WhenAll(_windowsLanguages.Select(runtime => _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
-            }
-
-            if (_environment.IsLinuxContainerEnvironment() || _environment.IsLinuxAppServiceEnvironment())
-            {
-                if (_linuxLanguages.Contains(workerRuntime))
-                {
-                    return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
-                }
+                InitializeChannelsAsync(LanguageWorkerConstants.LinuxOperatingSystemName, workerRuntime);
             }
             else
             {
-                if (_windowsLanguages.Contains(workerRuntime))
-                {
-                    return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
-                }
+                InitializeChannelsAsync(LanguageWorkerConstants.WindowsOperatingSystemName, workerRuntime);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private bool IsLinuxEnvironment()
+        {
+            return _environment.IsLinuxContainerEnvironment() || _environment.IsLinuxAppServiceEnvironment();
+        }
+
+        private Task InitializeChannelsAsync(string os, string workerRuntime)
+        {
+            if (StartInPlaceholderMode(workerRuntime))
+            {
+                return Task.WhenAll(_osToLanguagesMapping[os].Select(runtime =>
+                    _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
+            }
+            if (_osToLanguagesMapping[os].Contains(workerRuntime))
+            {
+                return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
             }
             return Task.CompletedTask;
         }
 
+        private bool StartInPlaceholderMode(string workerRuntime)
+        {
+            return string.IsNullOrEmpty(workerRuntime) && _environment.IsPlaceholderModeEnabled();
+        }
+
         // To help with unit tests
-        internal void AddSupportedWindowsRuntime(string language) => _windowsLanguages.Add(language);
+        internal void AddSupportedWindowsRuntime(string language) =>
+            _osToLanguagesMapping[LanguageWorkerConstants.WindowsOperatingSystemName].Add(language);
     }
 }
