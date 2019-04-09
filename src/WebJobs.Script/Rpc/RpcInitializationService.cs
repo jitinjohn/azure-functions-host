@@ -20,6 +20,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         private readonly ILanguageWorkerChannelManager _languageWorkerChannelManager;
         private readonly IRpcServer _rpcServer;
         private readonly ILogger _logger;
+        private readonly string _workerRuntime;
 
         private Dictionary<string, List<string>> _osToLanguagesMapping = new Dictionary<string, List<string>>()
         {
@@ -40,6 +41,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             _rpcServer = rpcServer;
             _environment = environment;
             _languageWorkerChannelManager = languageWorkerChannelManager ?? throw new ArgumentNullException(nameof(languageWorkerChannelManager));
+            _workerRuntime = _environment.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName);
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -75,15 +77,13 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
 
         internal Task InitializeChannelsAsync()
         {
-            string workerRuntime = _environment.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName);
-
             if (IsLinuxEnvironment())
             {
-                InitializeChannelsAsync(LanguageWorkerConstants.LinuxOperatingSystemName, workerRuntime);
+                InitializeChannelsAsync(LanguageWorkerConstants.LinuxOperatingSystemName, _workerRuntime);
             }
             else
             {
-                InitializeChannelsAsync(LanguageWorkerConstants.WindowsOperatingSystemName, workerRuntime);
+                InitializeChannelsAsync(LanguageWorkerConstants.WindowsOperatingSystemName, _workerRuntime);
             }
 
             return Task.CompletedTask;
