@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Script.Abstractions;
@@ -22,16 +23,21 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         private readonly ILogger _logger;
         private readonly string _workerRuntime;
 
-        private Dictionary<string, List<string>> _osToLanguagesMapping = new Dictionary<string, List<string>>()
+        private Dictionary<OSPlatform, List<string>> _hostingOSToWhitelistedRuntimes = new Dictionary<OSPlatform, List<string>>()
         {
             {
-                LanguageWorkerConstants.WindowsOperatingSystemName,
+                OSPlatform.Windows,
                 new List<string>() { LanguageWorkerConstants.JavaLanguageWorkerName }
             },
             {
-                LanguageWorkerConstants.LinuxOperatingSystemName,
+                OSPlatform.Linux,
                 new List<string>() { LanguageWorkerConstants.PythonLanguageWorkerName }
             }
+        };
+
+        private List<string> _appLevelWhitelistedRuntimes = new List<string>()
+        {
+            LanguageWorkerConstants.JavaLanguageWorkerName
         };
 
         public RpcInitializationService(IOptionsMonitor<ScriptApplicationHostOptions> applicationHostOptions, IEnvironment environment, IRpcServer rpcServer, ILanguageWorkerChannelManager languageWorkerChannelManager, ILoggerFactory loggerFactory)
@@ -77,44 +83,52 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
 
         internal Task InitializeChannelsAsync()
         {
-            if (IsLinuxEnvironment())
+            if (ShouldStartInPlaceholderMode(_workerRuntime))
             {
-                InitializeChannelsAsync(LanguageWorkerConstants.LinuxOperatingSystemName, _workerRuntime);
+                return InitializePlaceholderChannelsAsync(_workerRuntime);
             }
             else
             {
-                InitializeChannelsAsync(LanguageWorkerConstants.WindowsOperatingSystemName, _workerRuntime);
+                return InitializeAppLevelRuntimeChannelsAsync(_workerRuntime);
+            }
+        }
+
+        private Task InitializePlaceholderChannelsAsync(string workerRuntime)
+        {
+            if (_environment.IsLinuxHostingEnvironment())
+            {
+                InitializePlaceholderChannelsAsync(OSPlatform.Linux, _workerRuntime);
+            }
+            else
+            {
+                InitializePlaceholderChannelsAsync(OSPlatform.Windows, _workerRuntime);
             }
 
             return Task.CompletedTask;
         }
 
-        private bool IsLinuxEnvironment()
+        private Task InitializePlaceholderChannelsAsync(OSPlatform os, string workerRuntime)
         {
-            return _environment.IsLinuxContainerEnvironment() || _environment.IsLinuxAppServiceEnvironment();
+            return Task.WhenAll(_hostingOSToWhitelistedRuntimes[os].Select(runtime =>
+                _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
         }
 
-        private Task InitializeChannelsAsync(string os, string workerRuntime)
+        private Task InitializeAppLevelRuntimeChannelsAsync(string workerRuntime)
         {
-            if (StartInPlaceholderMode(workerRuntime))
-            {
-                return Task.WhenAll(_osToLanguagesMapping[os].Select(runtime =>
-                    _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
-            }
-            if (_osToLanguagesMapping[os].Contains(workerRuntime))
+            if (_appLevelWhitelistedRuntimes.Contains(workerRuntime))
             {
                 return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
             }
+
             return Task.CompletedTask;
         }
 
-        private bool StartInPlaceholderMode(string workerRuntime)
+        private bool ShouldStartInPlaceholderMode(string workerRuntime)
         {
             return string.IsNullOrEmpty(workerRuntime) && _environment.IsPlaceholderModeEnabled();
         }
 
         // To help with unit tests
-        internal void AddSupportedWindowsRuntime(string language) =>
-            _osToLanguagesMapping[LanguageWorkerConstants.WindowsOperatingSystemName].Add(language);
+        internal void AddSupportedAppLeveRuntime(string language) => _appLevelWhitelistedRuntimes.Add(language);
     }
 }

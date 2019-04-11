@@ -14,10 +14,6 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         public const string WorkerConfigFileName = "worker.config.json";
         public const string DefaultWorkersDirectoryName = "workers";
 
-        // Operating system
-        public const string WindowsOperatingSystemName = "windows";
-        public const string LinuxOperatingSystemName = "linux";
-
         // Section names in host.json
         public const string LanguageWorkersSectionName = "languageWorkers";
         public const string WorkersDirectorySectionName = "workersDirectory";
