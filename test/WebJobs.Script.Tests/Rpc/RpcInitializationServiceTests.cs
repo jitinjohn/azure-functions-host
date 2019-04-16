@@ -160,14 +160,14 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
         }
 
         [Fact]
-        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_AppLevel_WorkerRuntime_Set_NoPlaceHolderMode()
+        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_WebHostLevel_WorkerRuntime_Set_Node_NoPlaceHolderMode()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
             mockEnvironment.Setup(p => p.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName)).Returns(LanguageWorkerConstants.NodeLanguageWorkerName);
 
             _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
-            _rpcInitializationService.AddSupportedAppLeveRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
+            _rpcInitializationService.AddSupportedWebHostLevelRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
             await _rpcInitializationService.StartAsync(CancellationToken.None);
             _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.NodeLanguageWorkerName), Times.Once);
             Assert.Contains("testserver", testRpcServer.Uri.ToString());
@@ -175,7 +175,7 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
         }
 
         [Fact]
-        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_AppLevel_WorkerRuntime_Set_PlaceHolderMode()
+        public async Task RpcInitializationService_Initializes_RpcServerAndChannels_WebHostLevel_WorkerRuntime_Set_Node_PlaceHolderMode()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
@@ -183,7 +183,7 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
             mockEnvironment.Setup(p => p.GetEnvironmentVariable(EnvironmentSettingNames.AzureWebsitePlaceholderMode)).Returns("1");
 
             _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
-            _rpcInitializationService.AddSupportedAppLeveRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
+            _rpcInitializationService.AddSupportedWebHostLevelRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
             await _rpcInitializationService.StartAsync(CancellationToken.None);
             _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.NodeLanguageWorkerName), Times.Once);
             Assert.Contains("testserver", testRpcServer.Uri.ToString());
@@ -191,7 +191,7 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
         }
 
         [Fact]
-        public async Task RpcInitializationService_Initializes_RpcServerOnly_AppLevel_WorkerRuntime_Set_RuntimeNotSupported()
+        public async Task RpcInitializationService_Initializes_RpcServerOnly_WebHostLevel_WorkerRuntime_Set_RuntimeNotSupported()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
@@ -206,16 +206,31 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Rpc
         }
 
         [Fact]
-        public async Task RpcInitializationService_Initializes_RpcServerOnly_AppLevel_WorkerRuntime_NotSet_NoPlaceHolderMode()
+        public async Task RpcInitializationService_Initializes_RpcServerOnly_WebHostLevel_WorkerRuntime_NotSet_NoPlaceHolderMode()
         {
             IRpcServer testRpcServer = new TestRpcServer();
             var mockEnvironment = new Mock<IEnvironment>();
 
             _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
-            _rpcInitializationService.AddSupportedAppLeveRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
+            _rpcInitializationService.AddSupportedWebHostLevelRuntime(LanguageWorkerConstants.NodeLanguageWorkerName);
             await _rpcInitializationService.StartAsync(CancellationToken.None);
             _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.JavaLanguageWorkerName), Times.Never);
             _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.NodeLanguageWorkerName), Times.Never);
+            Assert.Contains("testserver", testRpcServer.Uri.ToString());
+            await testRpcServer.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task RpcInitializationService_Initializes_RpcServerOnly_WorkerRuntime_Set_Python_NoPlaceHolderMode()
+        {
+            IRpcServer testRpcServer = new TestRpcServer();
+            var mockEnvironment = new Mock<IEnvironment>();
+            mockEnvironment.Setup(p => p.GetEnvironmentVariable(LanguageWorkerConstants.FunctionWorkerRuntimeSettingName)).Returns(LanguageWorkerConstants.PythonLanguageWorkerName);
+
+            _rpcInitializationService = new RpcInitializationService(_optionsMonitor, mockEnvironment.Object, testRpcServer, _mockLanguageWorkerChannelManager.Object, _loggerFactory);
+
+            await _rpcInitializationService.StartAsync(CancellationToken.None);
+            _mockLanguageWorkerChannelManager.Verify(m => m.InitializeChannelAsync(LanguageWorkerConstants.PythonLanguageWorkerName), Times.Never);
             Assert.Contains("testserver", testRpcServer.Uri.ToString());
             await testRpcServer.ShutdownAsync();
         }

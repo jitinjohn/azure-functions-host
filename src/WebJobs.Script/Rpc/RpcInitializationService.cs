@@ -35,7 +35,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             }
         };
 
-        private List<string> _appLevelWhitelistedRuntimes = new List<string>()
+        private List<string> _webHostLevelWhitelistedRuntimes = new List<string>()
         {
             LanguageWorkerConstants.JavaLanguageWorkerName
         };
@@ -83,52 +83,52 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
 
         internal Task InitializeChannelsAsync()
         {
-            if (ShouldStartInPlaceholderMode(_workerRuntime))
+            if (ShouldStartInPlaceholderMode())
             {
-                return InitializePlaceholderChannelsAsync(_workerRuntime);
+                return InitializePlaceholderChannelsAsync();
             }
             else
             {
-                return InitializeAppLevelRuntimeChannelsAsync(_workerRuntime);
+                return InitializeWebHostRuntimeChannelsAsync();
             }
         }
 
-        private Task InitializePlaceholderChannelsAsync(string workerRuntime)
+        private Task InitializePlaceholderChannelsAsync()
         {
             if (_environment.IsLinuxHostingEnvironment())
             {
-                InitializePlaceholderChannelsAsync(OSPlatform.Linux, _workerRuntime);
+                InitializePlaceholderChannelsAsync(OSPlatform.Linux);
             }
             else
             {
-                InitializePlaceholderChannelsAsync(OSPlatform.Windows, _workerRuntime);
+                InitializePlaceholderChannelsAsync(OSPlatform.Windows);
             }
 
             return Task.CompletedTask;
         }
 
-        private Task InitializePlaceholderChannelsAsync(OSPlatform os, string workerRuntime)
+        private Task InitializePlaceholderChannelsAsync(OSPlatform os)
         {
             return Task.WhenAll(_hostingOSToWhitelistedRuntimes[os].Select(runtime =>
                 _languageWorkerChannelManager.InitializeChannelAsync(runtime)));
         }
 
-        private Task InitializeAppLevelRuntimeChannelsAsync(string workerRuntime)
+        private Task InitializeWebHostRuntimeChannelsAsync()
         {
-            if (_appLevelWhitelistedRuntimes.Contains(workerRuntime))
+            if (_webHostLevelWhitelistedRuntimes.Contains(_workerRuntime))
             {
-                return _languageWorkerChannelManager.InitializeChannelAsync(workerRuntime);
+                return _languageWorkerChannelManager.InitializeChannelAsync(_workerRuntime);
             }
 
             return Task.CompletedTask;
         }
 
-        private bool ShouldStartInPlaceholderMode(string workerRuntime)
+        private bool ShouldStartInPlaceholderMode()
         {
-            return string.IsNullOrEmpty(workerRuntime) && _environment.IsPlaceholderModeEnabled();
+            return string.IsNullOrEmpty(_workerRuntime) && _environment.IsPlaceholderModeEnabled();
         }
 
         // To help with unit tests
-        internal void AddSupportedAppLeveRuntime(string language) => _appLevelWhitelistedRuntimes.Add(language);
+        internal void AddSupportedWebHostLevelRuntime(string language) => _webHostLevelWhitelistedRuntimes.Add(language);
     }
 }
