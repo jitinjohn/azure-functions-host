@@ -29,10 +29,11 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
 
         [HttpPost]
         [Route("admin/instance/assign")]
-        public async Task<IActionResult> Assign([FromBody] HostAssignmentContext encryptedAssignmentContext)
+        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        public async Task<IActionResult> Assign([FromBody] EncryptedHostAssignmentContext encryptedAssignmentContext)
         {
-            //var containerKey = _environment.GetEnvironmentVariable(EnvironmentSettingNames.ContainerEncryptionKey);
-            var assignmentContext = encryptedAssignmentContext; //.Decrypt(containerKey);
+            var containerKey = _environment.GetEnvironmentVariable(EnvironmentSettingNames.ContainerEncryptionKey);
+            var assignmentContext = encryptedAssignmentContext.Decrypt(containerKey);
 
             // before starting the assignment we want to perform as much
             // up front validation on the context as possible

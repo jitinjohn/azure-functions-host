@@ -265,9 +265,8 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 {
                     await content.CopyToAsync(stream);
                 }
-
+                _logger.LogInformation($"{response.Content.Headers.ContentLength} bytes downloaded");
             }
-            _logger.LogInformation($"{response.Content.Headers.ContentLength} bytes downloaded");
             return filePath;
         }
 

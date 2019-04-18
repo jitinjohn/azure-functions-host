@@ -10,35 +10,16 @@ RUN cd workingdir && \
 
 # Runtime image
 # FROM microsoft/dotnet:2.2-aspnetcore-runtime
-FROM mcr.microsoft.com/azure-functions/python:2.0
+FROM mcr.microsoft.com/azure-functions/mesh:2.0.12410
 
-RUN apt-get update && \
-    apt-get install -y gnupg && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    apt-get update && \
-    apt-get install -y git autoconf libtool make gcc libtool libfuse-dev liblzma-dev nodejs archivemount fuse-zip && \
-    git clone https://github.com/vasi/squashfuse && \
-    cd squashfuse && \
-    ./autogen.sh && \
-    ./configure && \
-    make && \
-    mv /azure-functions-host/workers/python /python
+RUN mv /azure-functions-host/workers /workers
 
 COPY --from=installer-env ["/azure-functions-host", "/azure-functions-host"]
+
 COPY ./run.sh /run.sh
 
 RUN rm -rf /azure-functions-host/workers && \
-    mkdir /azure-functions-host/workers && \
-    mv /python /azure-functions-host/workers && \
+    mv /workers /azure-functions-host/ && \
     chmod +x /run.sh
 
-ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
-    HOME=/home \
-    ASPNETCORE_URLS=http://+:80 \
-    AZURE_FUNCTIONS_ENVIRONMENT=Development \
-    FUNCTIONS_WORKER_RUNTIME=
-
-EXPOSE 80
-
-# CMD [ "dotnet", "/azure-functions-host/Microsoft.Azure.WebJobs.Script.WebHost.dll" ]
 CMD /run.sh
