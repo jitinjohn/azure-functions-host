@@ -29,7 +29,7 @@ COPY ./run.sh /run.sh
 RUN rm -rf /azure-functions-host/workers && \
     mv /workers /azure-functions-host/ && \
     chmod +x /run.sh && \
-    wget https://github.com/maiqbal11/azure-functions-docker/blob/5437beb94d749c8ae69689e1f80ca8158817382e/host/2.0/stretch/amd64/python-context/start.sh && \
+    wget https://raw.githubusercontent.com/maiqbal11/azure-functions-docker/5437beb94d749c8ae69689e1f80ca8158817382e/host/2.0/stretch/amd64/python-context/start.sh && \
     mv start.sh /azure-functions-host/workers/python && \
     chmod +x /azure-functions-host/workers/python/start.sh && \
     pip uninstall -y azure-functions-worker && \
